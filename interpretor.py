@@ -3,6 +3,7 @@
 # EOF (end-of-file) token is used to indicate that
 # there is no more input left for lexical analysis
 INTEGER, PLUS,MINUS,MUL,DIV, EOF = 'INTEGER', 'PLUS', 'MINUS','MUL','DIV','EOF'
+SIGN='SIGN'
 
 
 class Token(object):
@@ -26,7 +27,6 @@ class Token(object):
 
     def __repr__(self):
         return self.__str__()
-
 
 class Interpreter(object):
     def __init__(self, text):
@@ -118,10 +118,27 @@ class Interpreter(object):
             self.current_token = self.get_next_token()
         else:
             self.error()
+    def sign(self):
+        signtok=self.current_token
+        self.eat((PLUS,MINUS))
+        if signtok.value=='-':
+            return Token(SIGN,True)
+        else:
+            return Token(SIGN,False)
+
     def term(self):
+        if self.current_token.value in ('+','-'):
+            sign = self.sign()
+        else:
+            sign=Token(SIGN,False)# positive
         termtok=self.current_token
         self.eat(INTEGER)
+
+        if sign.value==True:
+            termtok.value*=-1
+
         return termtok
+
     
     def expr(self):
         """expr -> INTEGER PLUS INTEGER"""
