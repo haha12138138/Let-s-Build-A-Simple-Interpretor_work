@@ -118,40 +118,27 @@ class Interpreter(object):
             self.current_token = self.get_next_token()
         else:
             self.error()
-
+    def term(self):
+        termtok=self.current_token
+        self.eat(INTEGER)
+        return termtok
+    
     def expr(self):
         """expr -> INTEGER PLUS INTEGER"""
         # set current token to the first token taken from the input
         self.current_token = self.get_next_token()
 
-        # we expect the current token to be a single-digit integer
-        left = self.current_token
-        self.eat(INTEGER)
+        left = self.term()
+        result=left.value
+        while self.current_token.value!=None:
+            op = self.current_token
+            self.eat((PLUS,MINUS))
+            other = self.term()
+            if (op.value=='+'):
+                result = result + other.value
+            elif (op.value=='-'):
+                result= result-other.value
 
-        # we expect the current token to be a '+' token
-        op = self.current_token
-        self.eat((PLUS,MINUS,MUL,DIV))
-
-        # we expect the current token to be a single-digit integer
-        right = self.current_token
-        self.eat(INTEGER)
-        # after the above call the self.current_token is set to
-        # EOF token
-
-        # at this point INTEGER PLUS INTEGER sequence of tokens
-        # has been successfully found and the method can just
-        # return the result of adding two integers, thus
-        # effectively interpreting client input
-        if (op.value=='+'):
-            result = left.value + right.value
-        elif (op.value=='-'):
-            result= left.value-right.value
-        elif (op.value=='*'):
-            result = left.value * right.value
-        elif (op.value=='/'):
-            result= left.value/right.value
-        else:
-            result=0
         return result
 
 
