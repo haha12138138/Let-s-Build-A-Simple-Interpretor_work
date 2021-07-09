@@ -2,7 +2,7 @@
 #
 # EOF (end-of-file) token is used to indicate that
 # there is no more input left for lexical analysis
-INTEGER, PLUS,MINUS,MUL,DIV, EOF = 'INTEGER', 'PLUS', 'MINUS','MUL','DIV','EOF'
+INTEGER, PLUS,MINUS,MUL,DIV,EOF,LEFT_P,RIGHT_P = 'INTEGER', 'PLUS', 'MINUS','MUL','DIV','EOF','LEFT_P','RIGHT_P'
 SIGN='SIGN'
 
 
@@ -68,6 +68,7 @@ class Interpreter(object):
             # here no white chars
         if current_char.isdigit():
             token = Token(INTEGER, self.__groupInt())
+            # __groupInt has already advanced the pointer
             return token
 
         if current_char == '+':
@@ -86,7 +87,14 @@ class Interpreter(object):
             token= Token(DIV,current_char)
             self.advance()
             return token
-
+        if current_char == '(':
+            token=Token(LEFT_P,current_char)
+            self.advance()
+            return token
+        if current_char == ')':
+            token=Token(RIGHT_P,current_char)
+            self.advance()
+            return token
         self.error()
 
     def __groupInt(self):
@@ -118,16 +126,17 @@ class Interpreter(object):
             self.current_token = self.get_next_token()
         else:
             self.error()
+
     def sign(self):
         signtok=self.current_token
         self.eat((PLUS,MINUS))
-        if signtok.value=='-':
+        if signtok.type==MINUS:
             return Token(SIGN,True)
         else:
             return Token(SIGN,False)
 
-    def term(self):
-        if self.current_token.value in ('+','-'):
+    def number(self):
+        if self.current_token.type in (PLUS,MINUS):
             sign = self.sign()
         else:
             sign=Token(SIGN,False)# positive
@@ -138,25 +147,65 @@ class Interpreter(object):
             termtok.value*=-1
 
         return termtok
+    def factor(self):
+        if self.current_token.type == LEFT_P:
+            # self.eat(LEFT_P)
+            lval= self.expr()
+            self.eat(RIGHT_P)
 
-    
+        elif self.current_token.type == RIGHT_P:
+            self.eat(RIGHT_P)
+            print('empty term')
+            self.error()
+        else:
+            lval=self.number()
+        return lval
+
+    def term(self):
+        lval=self.factor()
+        while self.current_token.type in (MUL,DIV):
+            op = self.current_token
+            self.eat((MUL, DIV))
+            other = self.factor()
+            if (op.type == MUL):
+                lval.value *= other.value
+            elif (op.type == DIV):
+                lval.value //= other.value
+        return lval
+        # if peek in('+','-'):
+        #     # '+'/'-' are not yet been received
+        #     #this will be treated as a number
+        #     return lval
+        # elif peek in('*','/'):
+        #     # this will be a factor subexprtion
+        #     while peek in ('*','/'):
+        #         op=self.current_token
+        #         self.eat((MUL,DIV))
+        #         other=self.number()
+        #         if(op.value=='*'):
+        #             lval.value*=other.value
+        #         elif(op.value=='/'):
+        #             lval.value//=other.value
+        #         peek=self.peeknextChar()
+        #     return lval
+        # elif peek==None:
+        #     return lval
+        # self.error()
     def expr(self):
         """expr -> INTEGER PLUS INTEGER"""
-        # set current token to the first token taken from the input
         self.current_token = self.get_next_token()
-
+        # set current token to the first token taken from the input
         left = self.term()
-        result=left.value
-        while self.current_token.value!=None:
+        while self.current_token.type in (PLUS, MINUS):
             op = self.current_token
             self.eat((PLUS,MINUS))
             other = self.term()
             if (op.value=='+'):
-                result = result + other.value
+                left.value = left.value + other.value
             elif (op.value=='-'):
-                result= result-other.value
+                left.value= left.value-other.value
 
-        return result
+        return left
 
 
 def main():
@@ -170,7 +219,7 @@ def main():
         if not text:
             continue
         interpreter = Interpreter(text)
-        result = interpreter.expr()
+        result = interpreter.expr().value
         print(result)
 
 
